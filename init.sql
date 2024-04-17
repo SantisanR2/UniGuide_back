@@ -5,13 +5,8 @@ CREATE TABLE IF NOT EXISTS User (
     password VARCHAR(120) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Place (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(80) NOT NULL,
-    description VARCHAR(200) NOT NULL,
-    coordinate VARCHAR(60) NOT NULL,
-    direction VARCHAR(120) NOT NULL,
-    img VARCHAR(120) NOT NULL
-    type VARCHAR(80) NOT NULL,
-    counter INT DEFAULT 0
-);
+CREATE TABLE Place ( id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(80) NOT NULL, description VARCHAR(200) NOT NULL, coordinate VARCHAR(60) NOT NULL, direction VARCHAR(120) NOT NULL, img VARCHAR(120) NOT NULL, type VARCHAR(80) NOT NULL, counter INT DEFAULT 0);
+
+CREATE TABLE feature_counters ( id INT AUTO_INCREMENT PRIMARY KEY, feature INT NOT NULL, counter INT DEFAULT 0);
+
+INSERT INTO feature_counters (feature) VALUES (1), (2), (3), (4), (5);

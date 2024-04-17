@@ -44,6 +44,7 @@ class Place(db.Model):
         self.description = description
         self.coordinate = coordinate
         self.direction = direction
+        self.img = img
         self.type = type
 
 class PlaceSchema(ma.SQLAlchemyAutoSchema):
@@ -52,6 +53,44 @@ class PlaceSchema(ma.SQLAlchemyAutoSchema):
 
 place_schema = PlaceSchema()
 places_schema = PlaceSchema(many=True)
+
+class FeatureCounters(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    feature = db.Column(db.Integer, nullable=False)
+    counter = db.Column(db.Integer, default=0)
+
+class FeatureSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = FeatureCounters
+
+features_schema = FeatureSchema(many=True)
+
+@app.route('/feature', methods=['POST'])
+def actualizar_contador():
+    try:
+        data = request.get_json()
+        feature = data.get('feature')
+
+        if feature:
+            counter = FeatureCounters.query.filter_by(feature=feature).first()
+            if not counter:
+                counter = FeatureCounters(feature=feature)
+
+            counter.counter += 1
+            db.session.add(counter)
+            db.session.commit()
+
+            return jsonify({"message": f"Contador para feature {feature} actualizado correctamente."})
+        else:
+            return jsonify({"error": "Feature no válida. Debe ser un número."}), 400
+    except Exception as e:
+        return jsonify({"error": f"Error al procesar la solicitud: {str(e)}"}), 500
+    
+@app.route('/feature', methods=['GET'])
+def get_cont():
+    features = FeatureCounters.query.all()
+    result = features_schema.dump(features)
+    return jsonify(result)
 
 @app.route('/login', methods=['POST'])
 def login():
