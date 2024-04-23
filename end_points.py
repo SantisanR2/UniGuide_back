@@ -4,7 +4,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_marshmallow import Marshmallow
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/prueba'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Karol0516_m@localhost/prueba'
 app.config['JWT_SECRET_KEY'] = 'somos_unos_cracks'
 
 db = SQLAlchemy(app)
@@ -16,18 +16,14 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     name = db.Column(db.String(80), nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    reviews = db.relationship('Review', backref='user', lazy=True)
 
     def __init__(self, email, name, password):
         self.email = email
         self.name = name
         self.password = password
 
-class UserSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = User
 
-user_schema = UserSchema()
-users_schema = UserSchema(many=True)
 
 class Place(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,6 +34,7 @@ class Place(db.Model):
     img = db.Column(db.String(120), nullable=True)
     type = db.Column(db.String(80), nullable=False)
     counter = db.Column(db.Integer, default=0)
+    reviews = db.relationship('Review', backref='place', lazy=True)
 
     def __init__(self, name, description, coordinate, direction, img, type):
         self.name = name
@@ -47,12 +44,45 @@ class Place(db.Model):
         self.img = img
         self.type = type
 
+class Review(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    rating = db.Column(db.Integer,nullable=False)
+    comment = db.Column(db.String(700), nullable = False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'), nullable=False)
+    
+    def __init__(self, rating, comment, user_id, place_id):
+        self.rating = rating
+        self.comment = comment
+        self.user_id = user_id
+        self.place_id = place_id
+
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+
+class ReviewSchema(ma.SQLAlchemyAutoSchema):
+    user_id = ma.auto_field()
+    place_id = ma.auto_field()
+    class Meta:
+        model = Review
+
+review_schema = ReviewSchema()
+reviews_schema = ReviewSchema(many = True)
+
 class PlaceSchema(ma.SQLAlchemyAutoSchema):
+    reviews = ma.Nested(ReviewSchema, many=True)
     class Meta:
         model = Place
 
 place_schema = PlaceSchema()
 places_schema = PlaceSchema(many=True)
+
+
 
 class FeatureCounters(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -213,5 +243,75 @@ def get_top3_places():
 def protected():
     return jsonify({'hello': 'world'}), 200
 
+# Endpoints CRUD para Review
+@app.route('/review', methods=['POST'])
+def add_review():
+    Rating = request.json['rating']
+    comment = request.json['comment']
+    user_id = request.json['user_id']
+    place_id = request.json['place_id']
+
+    new_review = Review(rating=Rating, comment=comment, user_id=user_id, place_id=place_id)
+
+    db.session.add(new_review)
+    db.session.commit()
+
+    return review_schema.jsonify(new_review)
+
+@app.route('/review/<id>', methods=['PUT'])
+def update_review(id):
+    review = Review.query.get(id)
+    if review:
+        review.Rating = request.json['Rating']
+        review.comment = request.json['comment']
+        review.user_id = request.json['user_id']
+        review.place_id = request.json['place_id']
+
+        db.session.commit()
+
+        return review_schema.jsonify(review)
+    else:
+        return jsonify({'message': 'Review not found'}), 404
+
+@app.route('/review/<id>', methods=['DELETE'])
+def delete_review(id):
+    review = Review.query.get(id)
+    if review:
+        db.session.delete(review)
+        db.session.commit()
+        return jsonify({'message': 'Review deleted'})
+    else:
+        return jsonify({'message': 'Review not found'}), 404
+
+@app.route('/review', methods=['GET'])
+def get_reviews():
+    all_reviews = Review.query.all()
+    result = reviews_schema.dump(all_reviews)
+    return jsonify(result)
+
+# Consulta por lugar
+@app.route('/review/place/<place_id>', methods=['GET'])
+def get_reviews_by_place(place_id):
+    reviews = Review.query.filter_by(place_id=place_id).all()
+    result = reviews_schema.dump(reviews)
+    return jsonify(result)
+
+# Consulta por usuario
+@app.route('/review/user/<user_id>', methods=['GET'])
+def get_reviews_by_user(user_id):
+    reviews = Review.query.filter_by(user_id=user_id).all()
+    result = reviews_schema.dump(reviews)
+    return jsonify(result)
+
+# Consulta por ID
+@app.route('/review/<id>', methods=['GET'])
+def get_review(id):
+    review = Review.query.get(id)
+    if review:
+        return review_schema.jsonify(review)
+    else:
+        return jsonify({'message': 'Review not found'}), 404
+
 if __name__ == '__main__':
     app.run(debug=True)
+
