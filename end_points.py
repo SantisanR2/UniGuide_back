@@ -75,7 +75,6 @@ review_schema = ReviewSchema()
 reviews_schema = ReviewSchema(many = True)
 
 class PlaceSchema(ma.SQLAlchemyAutoSchema):
-    reviews = ma.Nested(ReviewSchema, many=True)
     class Meta:
         model = Place
 
