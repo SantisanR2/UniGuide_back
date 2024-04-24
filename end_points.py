@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_marshmallow import Marshmallow
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Karol0516_m@localhost/prueba'
@@ -50,12 +51,14 @@ class Review(db.Model):
     comment = db.Column(db.String(700), nullable = False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     place_id = db.Column(db.Integer, db.ForeignKey('place.id'), nullable=False)
+    init_date = db.Column(db.Date, nullable=False)
     
-    def __init__(self, rating, comment, user_id, place_id):
+    def __init__(self, rating, comment, user_id, place_id, init_date):
         self.rating = rating
         self.comment = comment
         self.user_id = user_id
         self.place_id = place_id
+        self.init_date = init_date
 
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
@@ -249,8 +252,11 @@ def add_review():
     comment = request.json['comment']
     user_id = request.json['user_id']
     place_id = request.json['place_id']
+    date = datetime.now()
+    date = date.strftime("%Y-%m-%d")
 
-    new_review = Review(rating=Rating, comment=comment, user_id=user_id, place_id=place_id)
+
+    new_review = Review(rating=Rating, comment=comment, user_id=user_id, place_id=place_id, init_date = date)
 
     db.session.add(new_review)
     db.session.commit()
