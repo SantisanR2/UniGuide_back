@@ -4,7 +4,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_marshmallow import Marshmallow
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Karol0516_m@localhost/prueba'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://UniGuide:Moviles12345@UniGuide.mysql.pythonanywhere-services.com/UniGuide$db'
 app.config['JWT_SECRET_KEY'] = 'somos_unos_cracks'
 
 db = SQLAlchemy(app)
