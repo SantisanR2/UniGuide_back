@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
+from sqlalchemy.sql import func
 from flask_marshmallow import Marshmallow
 from datetime import datetime
 
@@ -347,6 +348,11 @@ def get_review(id):
         return review_schema.jsonify(review)
     else:
         return jsonify({'message': 'Review not found'}), 404
+    
+@app.route('/place/<place_id>/average_review', methods=['GET'])
+def get_average_review(place_id):
+    average_rating = db.session.query(func.avg(Review.rating)).filter(Review.place_id == place_id).scalar()
+    return jsonify({'average_rating': round(average_rating, 2) if average_rating else 0})
 
 if __name__ == '__main__':
     app.run(debug=True)
