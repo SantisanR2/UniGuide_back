@@ -97,6 +97,37 @@ class FeatureSchema(ma.SQLAlchemyAutoSchema):
 
 features_schema = FeatureSchema(many=True)
 
+class AndroidDistribution(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    device = db.Column(db.String(120), nullable=False)
+    android = db.Column(db.String(120), nullable=False)
+
+    def __init__(self, device, android):
+        self.device = device
+        self.android = android
+
+class AndroidDistributionSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = AndroidDistribution
+
+android_distribution_schema = AndroidDistributionSchema()
+android_distributions_schema = AndroidDistributionSchema(many=True)
+
+@app.route('/distribution', methods=['POST'])
+def add_distribution():
+    device = request.json['device']
+    android = request.json['android']
+    new_distribution = AndroidDistribution(device, android)
+    db.session.add(new_distribution)
+    db.session.commit()
+    return android_distribution_schema.jsonify(new_distribution)
+
+@app.route('/distribution', methods=['GET'])
+def get_distributions():
+    all_distributions = AndroidDistribution.query.all()
+    result = android_distributions_schema.dump(all_distributions)
+    return jsonify(result)
+
 @app.route('/feature', methods=['POST'])
 def actualizar_contador():
     try:
