@@ -172,8 +172,14 @@ def login():
     if user is None:
         return jsonify({"msg": "Bad email or password"}), 401
 
-    access_token = create_access_token(identity=email)
-    return jsonify(access_token=access_token), 200
+    user_data = {
+        "email": user.email,
+        "name": user.name,
+        "access_token": create_access_token(identity=email)
+    }
+
+    return jsonify(user_data), 200
+
 
 @app.route('/user', methods=['POST'])
 def add_user():
