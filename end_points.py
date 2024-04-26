@@ -173,6 +173,7 @@ def login():
         return jsonify({"msg": "Bad email or password"}), 401
 
     user_data = {
+        "id": user.id,
         "email": user.email,
         "name": user.name,
         "access_token": create_access_token(identity=email)
