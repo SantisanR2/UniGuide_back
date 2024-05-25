@@ -19,13 +19,13 @@ class User(db.Model):
     name = db.Column(db.String(80), nullable=False)
     password = db.Column(db.String(120), nullable=False)
     reviews = db.relationship('Review', backref='user', lazy=True)
+    suggestions = db.relationship('Suggestion', backref='user', lazy=True)
+    preferences = db.relationship('UserPreferences', backref='user', uselist=False)
 
     def __init__(self, email, name, password):
         self.email = email
         self.name = name
         self.password = password
-
-
 
 class Place(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -37,6 +37,7 @@ class Place(db.Model):
     type = db.Column(db.String(80), nullable=False)
     counter = db.Column(db.Integer, default=0)
     reviews = db.relationship('Review', backref='place', lazy=True)
+    suggestions = db.relationship('Suggestion', backref='place', lazy=True)
 
     def __init__(self, name, description, coordinate, direction, img, type):
         self.name = name
@@ -45,6 +46,28 @@ class Place(db.Model):
         self.direction = direction
         self.img = img
         self.type = type
+
+class Suggestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    place_id = db.Column(db.Integer, db.ForeignKey('place.id'), nullable=False)
+
+    def __init__(self, user_id, place_id):
+        self.user_id = user_id
+        self.place_id = place_id
+
+class UserPreferences(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type_places = db.Column(db.String(100))
+    review_places = db.Column(db.String(100))
+    counter_places = db.Column(db.String(100))
+
+    def __init__(self, user_id, type_places, review_places, counter_places):
+        self.user_id = user_id
+        self.type_places = type_places
+        self.review_places = review_places
+        self.counter_places = counter_places
 
 class Review(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -60,7 +83,6 @@ class Review(db.Model):
         self.user_id = user_id
         self.place_id = place_id
         self.init_date = init_date
-
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -78,14 +100,29 @@ class ReviewSchema(ma.SQLAlchemyAutoSchema):
 review_schema = ReviewSchema()
 reviews_schema = ReviewSchema(many = True)
 
+class SuggestionsSchema(ma.SQLAlchemyAutoSchema):
+    user_id = ma.auto_field()
+    place_id = ma.auto_field()
+    class Meta:
+        model = Suggestion
+    
+suggestions_schema = SuggestionsSchema()
+suggestions_schema = SuggestionsSchema(many=True)
+
+class UserPreferencesSchema(ma.SQLAlchemyAutoSchema):
+    user_id = ma.auto_field()
+    class Meta:
+        model = UserPreferences
+
+user_preferences_schema = UserPreferencesSchema()
+user_preferences_schema = UserPreferencesSchema(many=True)
+
 class PlaceSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Place
 
 place_schema = PlaceSchema()
 places_schema = PlaceSchema(many=True)
-
-
 
 class FeatureCounters(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -360,6 +397,68 @@ def get_review(id):
 def get_average_review(place_id):
     average_rating = db.session.query(func.avg(Review.rating)).filter(Review.place_id == place_id).scalar()
     return jsonify({'average_rating': round(average_rating, 2) if average_rating else 0})
+
+@app.route('/preferences', methods=['POST'])
+def add_or_update_user_preferences():
+    user_id = request.json['user_id']
+    type_places = request.json['type_places']
+    review_places = request.json['review_places']
+    counter_places = request.json['counter_places']
+
+    existing_preferences = UserPreferences.query.filter_by(user_id=user_id).all()
+    exist = False
+
+    for existing_preference in existing_preferences:
+        exist = True
+        existing_preference.type_places = type_places
+        existing_preference.review_places = review_places
+        existing_preference.counter_places = counter_places
+    if not exist:
+        new_user_preferences = UserPreferences(user_id=user_id, type_places=type_places, review_places=review_places, counter_places=counter_places)
+        db.session.add(new_user_preferences)
+
+    existing_suggestions = Suggestion.query.filter_by(user_id=user_id).all()
+    for suggestion in existing_suggestions:
+        db.session.delete(suggestion)
+
+    filtered_places = Place.query.filter_by(type=type_places).all()
+    if review_places == 'good':
+        filtered_places = [place for place in filtered_places if get_average_rating(place.id) > 4]
+    elif review_places == 'bad':
+        filtered_places = [place for place in filtered_places if get_average_rating(place.id) > 2]
+
+    if counter_places == 'yes':
+        filtered_places.sort(key=lambda place: place.counter, reverse=True)
+        filtered_places = filtered_places[:4]
+
+    for place in filtered_places:
+        new_suggestion = Suggestion(user_id=user_id, place_id=place.id)
+        db.session.add(new_suggestion)
+
+    db.session.commit()
+
+    return user_preferences_schema.jsonify(existing_preferences or new_user_preferences)
+
+def get_average_rating(place_id):
+    average_rating = db.session.query(func.avg(Review.rating)).filter(Review.place_id == place_id).scalar()
+    return round(average_rating, 2) if average_rating else 0
+
+@app.route('/suggestions/<int:user_id>', methods=['GET'])
+def get_user_suggestions(user_id):
+    def get_suggestions_for_user(user_id):
+        suggestions = Suggestion.query.filter_by(user_id=user_id).all()
+        return [place_schema.dump(suggestion.place) for suggestion in suggestions]
+    
+    def get_top_places(n):
+        return place_schema.dump(Place.query.order_by(Place.counter.desc()).limit(n).all())
+
+    suggestions = get_suggestions_for_user(user_id)
+    if suggestions.__len__() == 0:
+        top_places = get_top_places(3)
+        return jsonify(top_places)
+    else:
+        return jsonify(suggestions)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

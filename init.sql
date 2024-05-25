@@ -8,5 +8,9 @@ CREATE TABLE IF NOT EXISTS review ( id INT AUTO_INCREMENT PRIMARY KEY,Rating INT
 
 CREATE TABLE IF NOT EXISTS android_distribution ( id INT AUTO_INCREMENT PRIMARY KEY, device VARCHAR(120) NOT NULL, android VARCHAR(120) NOT NULL);
 
+CREATE TABLE IF NOT EXISTS suggestion (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, place_id INT NOT NULL, FOREIGN KEY (user_id) REFERENCES user(id), FOREIGN KEY (place_id) REFERENCES place(id));
+
+CREATE TABLE IF NOT EXISTS user_preferences ( id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type_places VARCHAR(100), review_places VARCHAR(100), counter_places VARCHAR(100),FOREIGN KEY (user_id) REFERENCES user(id));
+
 
 INSERT INTO feature_counters (feature) VALUES (1), (2), (3), (4), (5);
