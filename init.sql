@@ -8,5 +8,8 @@ CREATE TABLE IF NOT EXISTS review ( id INT AUTO_INCREMENT PRIMARY KEY,Rating INT
 
 CREATE TABLE IF NOT EXISTS android_distribution ( id INT AUTO_INCREMENT PRIMARY KEY, device VARCHAR(120) NOT NULL, android VARCHAR(120) NOT NULL);
 
+CREATE TABLE IF NOT EXISTS view_time ( id INT AUTO_INCREMENT PRIMARY KEY, view VARCHAR(20) NOT NULL, time INT DEFAULT 0);
+
+INSERT INTO view_time (view) VALUES ("Home"), ("Favorites"), ("Suggestions"), ("Profile"), ("Detail");
 
 INSERT INTO feature_counters (feature) VALUES (1), (2), (3), (4), (5);
