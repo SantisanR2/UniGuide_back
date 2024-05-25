@@ -12,5 +12,8 @@ CREATE TABLE IF NOT EXISTS suggestion (id INT AUTO_INCREMENT PRIMARY KEY, user_i
 
 CREATE TABLE IF NOT EXISTS user_preferences ( id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, type_places VARCHAR(100), review_places VARCHAR(100), counter_places VARCHAR(100),FOREIGN KEY (user_id) REFERENCES user(id));
 
+CREATE TABLE IF NOT EXISTS view_time ( id INT AUTO_INCREMENT PRIMARY KEY, view VARCHAR(20) NOT NULL, time INT DEFAULT 0);
+
+INSERT INTO view_time (view) VALUES ("Home"), ("Favorites"), ("Suggestions"), ("Profile"), ("Detail");
 
 INSERT INTO feature_counters (feature) VALUES (1), (2), (3), (4), (5);

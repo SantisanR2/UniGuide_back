@@ -151,6 +151,37 @@ class AndroidDistributionSchema(ma.SQLAlchemyAutoSchema):
 android_distribution_schema = AndroidDistributionSchema()
 android_distributions_schema = AndroidDistributionSchema(many=True)
 
+class ViewTime(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    view = db.Column(db.String(20), nullable=False)
+    time = db.Column(db.Integer, default=0)
+
+class ViewTimeSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = ViewTime
+
+viewTimeSchema = ViewTimeSchema(many = True)
+
+
+@app.route('/view', methods=['POST'])
+def add_time_view():
+    view_name= request.json['view']
+    time = request.json['time']
+    view = ViewTime.query.filter_by(view = view_name).first()
+    if not view:
+        view = ViewTime(view = view_name)
+    view.time+=time
+    db.session.add(view)
+    db.session.commit()
+    return jsonify({"message": f"El tiempo de la vista {view_name} ha sido actualizado correctamente."})
+
+@app.route('/view', methods=['GET'])
+def get_time_view():
+    all_views = ViewTime.query.all()
+    result = viewTimeSchema.dump(all_views)
+    return jsonify(result)
+
+
 @app.route('/distribution', methods=['POST'])
 def add_distribution():
     device = request.json['device']
